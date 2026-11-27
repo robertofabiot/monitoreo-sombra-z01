@@ -5,7 +5,8 @@ Prototipo del producto mínimo viable del Proyecto Integrador de Educación Ambi
 Sitio estático en HTML, CSS y JavaScript. Para abrirlo en local, sirve la carpeta con un servidor HTTP estático, por ejemplo `python -m http.server 8000`, y visita `http://localhost:8000/`. GitHub Pages sirve la misma carpeta desde `main`.
 
 - `#formulario` abre la sección de registro y exportación CSV.
-- `#como` abre el método de conteo y el explorador solar.
+- `#como` abre el método de conteo.
+- `#explorador` abre el mapa y la estimación solar.
 
 ## Datos y formulario
 
@@ -17,6 +18,8 @@ Los nuevos registros se guardan en `localStorage`, separado por navegador, perfi
 
 ## Posición solar
 
-El explorador usa las [ecuaciones simplificadas de NOAA](https://gml.noaa.gov/grad/solcalc/solareqns.PDF) para Managua (12,13° N, 86,25° O, UTC−6). La fecha y hora de este cálculo son independientes de los conteos de campo.
+Los dos selectores de hora están sincronizados. La hora selecciona qué conteos se ven en la portada y en el mapa, y también la hora del cálculo solar. El arco de Z01 representa la proporción de asientos con sombra observada en campo. La fecha solo cambia la estimación solar.
+
+El explorador usa las [ecuaciones simplificadas de NOAA](https://gml.noaa.gov/grad/solcalc/solareqns.PDF) para Managua (12,13° N, 86,25° O, UTC−6). La vista lateral usa la misma escala horizontal y vertical. La longitud estimada se obtiene dividiendo los 3 m de altura del objeto entre la tangente de la elevación solar.
 
 El 25 de noviembre de 2026 a las 12:00, la fórmula simplificada da 56,56° de altura geométrica y el sitio muestra 56,6°. Con los mismos datos, el [método de la calculadora solar de NOAA](https://gml.noaa.gov/grad/solcalc/calcdetails.html), basado en Meeus, da 56,31° geométricos y 56,32° con refracción. Los dos modelos difieren en la declinación y la ecuación del tiempo. Al redondear a un grado, los resultados quedan a lados distintos de 56,5° y explican el 57° del sitio anterior y los aproximadamente 56° del informe.
