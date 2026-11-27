@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo de sombra Z01 · MVP</title>
+<style>
+:root{
+  --bg:#f5f3ee; --panel:#ffffff; --ink:#1c2a2e; --muted:#5d6d72; --line:#dde3e3;
+  --teal:#0e7c86; --teal-d:#0a4f57; --teal-bg:#e6f3f4; --sun:#d97706; --sun-bg:#fff4df; --bldg:#c9cfd1; --bldg-s:#aab3b6;
+  --path:#e8e4da; --grass:#dcebd9; --warn:#b42318; --off:#c4cbcc;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10181a;--panel:#18242a;--ink:#e6eeee;--muted:#9fb1b5;--line:#2a3a40;--teal:#37b7c3;--teal-d:#7fd6de;--teal-bg:#123238;--sun:#f5a524;--sun-bg:#3a2a0c;--bldg:#2f3d42;--bldg-s:#3c4d53;--path:#202d32;--grass:#1c3a2a;--warn:#ff8a7a;--off:#3a484d;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Noto Sans","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 16px 28px}
+header{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+h1{font-size:22px;margin:0;letter-spacing:-.2px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.badge{display:inline-block;background:var(--teal-bg);color:var(--teal-d);border:1px solid var(--teal);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700}
+.tabs{display:flex;gap:6px;margin:10px 0 12px;flex-wrap:wrap}
+.tab,.seg button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 13px;font:inherit;font-size:14px;cursor:pointer}
+.tab[aria-selected=true],.seg button[aria-pressed=true]{background:var(--teal-d);border-color:var(--teal-d);color:#fff;font-weight:700}
+@media (prefers-color-scheme:dark){.tab[aria-selected=true],.seg button[aria-pressed=true]{color:#0b1416;background:var(--teal)}}
+.controls{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.controls label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.seg{display:flex;gap:6px}
+input,select,textarea{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);width:100%}
+.controls input[type=date]{width:auto}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px;color:var(--teal-d)}
+svg{display:block;width:100%;height:auto}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.kpi b{display:block;font-size:24px;line-height:1.1;letter-spacing:-.5px}
+.kpi span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.sel td{background:var(--sun-bg)}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700;color:#fff}
+.critica{background:#b42318}.ok{background:#0e7c86}.ensayo{background:#7a8a8e}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--teal)}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.ramp{width:150px;height:9px;border-radius:5px;background:linear-gradient(90deg,#d97706,#f3d9a0,#9fd3d6,#0e7c86)}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--off);border:1px solid var(--bldg-s)}
+.note{font-size:12.5px;color:var(--muted)}
+.detail{font-size:13.5px}
+.detail b{color:var(--ink)}
+.rule{background:var(--sun-bg);border-left:4px solid var(--sun);border-radius:6px;padding:7px 10px;margin-top:8px;font-size:13px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.formgrid .full{grid-column:1/-1}
+.formgrid label{font-size:12.5px;font-weight:600;display:block;margin-bottom:3px}
+.hint{margin-top:5px;font-size:12px;line-height:1.35;background:var(--teal-bg);border-left:3px solid var(--teal);border-radius:5px;padding:5px 8px}
+.sub-hint{margin-top:3px;font-size:11.5px;color:var(--muted)}
+button.primary{background:var(--teal-d);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}
+@media (prefers-color-scheme:dark){button.primary{background:var(--teal);color:#0b1416}}
+button.ghost{background:var(--panel);color:var(--teal-d);border:1px solid var(--teal);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.phone{max-width:430px;margin:0 auto;border:2px solid var(--line);border-radius:22px;padding:14px;background:var(--panel)}
+.qr{width:74px;height:74px;border:1px solid var(--line);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--muted);text-align:center;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/14px 14px}
+.msg{margin-top:8px;font-size:12.5px;min-height:1.2em}
+.msg.err{color:var(--warn);font-weight:600}
+.msg.okm{color:var(--teal-d);font-weight:600}
+.hidden{display:none}
+footer{margin-top:14px;font-size:12px;color:var(--muted)}
+.uv{display:flex;gap:5px;flex-wrap:wrap}
+.uv span{font-size:11px;padding:2px 8px;border-radius:5px;color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Monitoreo de sombra · Zona Z01 (Copérnico)</h1>
+      <div class="sub">Producto mínimo viable · Proyecto Integrador · Educación Ambiental · Grupo 4 · UAM, Managua</div>
+    </div>
+    <span class="badge">MVP · ZONA PILOTO Z01 · 30 ASIENTOS</span>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="mapa">1 · Resultados de Z01</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="form">2 · Formulario de registro</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="como">3 · Cómo se calcula</button>
+  </div>
+
+  <!-- ================= RESULTADOS ================= -->
+  <section id="tab-mapa">
+    <div class="controls">
+      <div><label>Hora de conteo</label>
+        <div class="seg" id="hours">
+          <button data-h="9" aria-pressed="false">09:00</button>
+          <button data-h="12" aria-pressed="true">12:00</button>
+          <button data-h="15" aria-pressed="false">15:00</button>
+        </div></div>
+      <div><label for="fecha">Fecha (posición del sol)</label><input id="fecha" type="date" value="2026-11-25"></div>
+      <div class="note" id="sunline" style="flex:1;min-width:230px"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Campus (esquema sin escala) · % de asientos con sombra en Z01</h2>
+        <svg id="map" viewBox="0 0 800 520" role="img" aria-label="Esquema del campus con la zona Z01 coloreada según su porcentaje de asientos con sombra"></svg>
+        <div class="legend"><span>Poca sombra</span><span class="ramp"></span><span>Mucha sombra</span><span style="margin-left:auto"><span class="dot"></span> Zonas por inventariar (escalamiento futuro)</span></div>
+      </div>
+
+      <div>
+        <div class="kpis">
+          <div class="kpi"><b id="k1">–</b><span id="k1l">Asientos con sombra</span></div>
+          <div class="kpi"><b id="k2">–</b><span>Clasificación a las 12:00 (umbral 25&nbsp;%)</span></div>
+          <div class="kpi"><b id="k3">–</b><span>Altura del sol</span></div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h2>Z01 por horario · registros de campo</h2>
+          <table id="rank"><thead><tr><th>Hora</th><th>Asientos con sombra</th><th>%</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card detail" id="detail"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2>Recorrido del sol en Managua en la fecha elegida (referencia solar, no medición)</h2>
+      <svg id="arc" viewBox="0 0 760 150" role="img" aria-label="Altura del sol según la hora del día"></svg>
+    </div>
+  </section>
+
+  <!-- ================= FORMULARIO ================= -->
+  <section id="tab-form" class="hidden">
+    <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+      <div class="card">
+        <h2>Registro en campo · menos de un minuto</h2>
+        <div class="phone" id="phone">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <b>Registro de sombra UAM</b>
+            <div class="qr">QR de<br>la zona</div>
+          </div>
+          <form id="f" class="formgrid">
+            <div class="full"><label for="f-zona">Zona (se llena al escanear el QR)</label><select id="f-zona"><option value="Z01">Z01 · Copérnico (P), área posterior</option></select></div>
+            <div><label for="f-fecha">Fecha</label><input id="f-fecha" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" pattern="\d{2}/\d{2}/\d{4}" required></div>
+            <div><label for="f-hora">Hora de conteo</label><select id="f-hora"><option value="9">09:00</option><option value="12" selected>12:00</option><option value="15">15:00</option></select></div>
+            <div><label for="f-cielo">Condición del cielo</label><select id="f-cielo"><option>Despejado</option><option>Parcialmente nublado</option><option>Nublado</option></select></div>
+            <div><label for="f-tipo">Tipo de registro</label><select id="f-tipo"><option>Campo</option><option>Ensayo</option></select></div>
+            <div><label for="f-tot">Asientos totales</label><input id="f-tot" type="number" value="30" disabled></div>
+            <div><label for="f-per">Personas presentes (1 min)</label><input id="f-per" type="number" min="0"><div class="sub-hint">Sentadas o detenidas en la zona.</div></div>
+            <div class="full"><label for="f-som">Asientos con sombra</label><input id="f-som" type="number" min="0" max="30" required>
+              <div class="hint"><b>Regla:</b> cuenta un asiento si <b>más de la mitad</b> de su superficie está en sombra.</div></div>
+            <div class="full"><label for="f-uv">Color del solmáforo</label>
+              <select id="f-uv" required><option value="" selected disabled>Seleccionar color…</option><option>Verde (bajo)</option><option>Amarillo (moderado)</option><option>Naranja (alto)</option><option>Rojo (muy alto)</option><option>Violeta (extremo)</option><option>No consultado</option></select>
+              <div class="hint"><b>Dónde:</b> el solmáforo está en el eje central peatonal y no se ve desde Z01. Consultarlo al momento del conteo.</div></div>
+            <div class="full"><label for="f-obs">Observación (qué se vio, no qué se supone)</label><textarea id="f-obs" rows="2" placeholder="Ej.: dos mesas sin uso por sol directo"></textarea></div>
+            <div class="full"><button class="primary" type="submit">Registrar</button></div>
+          </form>
+          <div id="f-msg" class="msg"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Qué pasa con ese registro</h2>
+        <ol style="margin:0 0 10px 18px;padding:0">
+          <li>Se cuentan los 30 asientos de Z01 a las 09:00, 12:00 y 15:00.</li>
+          <li>El formulario rechaza sombra mayor que el total, registros sin fecha y duplicados.</li>
+          <li>Al cerrar la jornada, los registros se exportan en CSV a la hoja de cálculo.</li>
+          <li>La hoja calcula el % de sombra (razón de sumas) y lo compara con el umbral de 25&nbsp;%.</li>
+        </ol>
+        <p class="note">Los registros quedan disponibles durante la sesión; exportarlos en CSV al terminar cada jornada. Los registros de ensayo no se incluyen en el indicador.</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+          <h2 style="margin:0">Registros de Z01</h2>
+          <button class="ghost" id="csv" type="button">Exportar CSV</button>
+        </div>
+        <table id="log" style="margin-top:6px"><thead><tr><th>Fecha</th><th>Hora</th><th>Sombra</th><th>Cielo</th><th>Solmáforo</th><th>Tipo</th></tr></thead><tbody></tbody></table>
+        <h2 style="margin-top:14px">Colores del solmáforo (escala del índice UV)</h2>
+        <div class="uv"><span style="background:#2e8b3d">Verde 1–2</span><span style="background:#b79300">Amarillo 3–5</span><span style="background:#d9701a">Naranja 6–7</span><span style="background:#c0392b">Rojo 8–10</span><span style="background:#7a3fb0">Violeta 11+</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CÓMO SE CALCULA ================= -->
+  <section id="tab-como" class="hidden">
+    <div class="card detail">
+      <h2>Reglas del prototipo (todas visibles, ninguna oculta)</h2>
+      <p><b>Asiento sombreado:</b> se cuenta cuando más de la mitad de su superficie está bajo sombra. Z01 tiene un inventario fijo de 30 asientos (plazas para una persona).</p>
+      <p><b>% de sombra</b> = asientos con sombra ÷ asientos observados × 100, contados a la misma hora.</p>
+      <p><b>Varias jornadas</b> se agregan con la razón de sumas: Σ asientos con sombra ÷ Σ asientos observados × 100 (no se promedian porcentajes).</p>
+      <p><b>Indicador principal:</b> % de asientos con sombra a las 12:00. <b>Criterio de decisión:</b> menos de 25&nbsp;% = zona crítica, candidata a revisión técnica de arborización.</p>
+      <p><b>Integridad de los registros</b> = registros completos ÷ registros esperados × 100.</p>
+      <p><b>Altura del sol</b> calculada con las ecuaciones astronómicas de la NOAA para Managua (12.13° N, 86.25° O, UTC−6). Es una referencia geométrica: no modifica los conteos.</p>
+      <p><b>Sombra de un objeto</b> = altura ÷ tan(altura del sol). Al mediodía el sol está alto: protege la sombra que viene de arriba (copa de árbol o cubierta), no la de un edificio vecino.</p>
+      <div class="rule">La herramienta no decide dónde sembrar ni qué especie usar. Indica si Z01 requiere revisión; la decisión corresponde a Mantenimiento e Infraestructura, con orientación de Jardinería.</div>
+    </div>
+  </section>
+
+  <footer>Zona piloto Z01: 30 asientos detrás del edificio Copérnico. Esquema sin escala; no representa el plano oficial de la UAM. Las demás zonas del esquema aún no se han inventariado.</footer>
+</div>
+
+<script>
+/* ---------- zona piloto y registros de campo ---------- */
+const Z01={id:"Z01",n:"Copérnico (P), área posterior",x:640,y:130,seats:30};
+const OTRAS=[["Z02",400,250],["Z03",200,150],["Z04",420,140],["Z05",210,340],["Z06",640,390],["Z07",110,455],["Z08",300,50],["Z09",540,300],["Z10",420,445],["Z11",290,455],["Z12",720,250]];
+const REG=[
+ {fecha:"2026-11-23",h:9, cielo:"Despejado",            sm:9, tot:30,pe:4,uv:"Amarillo (moderado)",tipo:"Campo",obs:""},
+ {fecha:"2026-11-23",h:12,cielo:"Despejado",            sm:3, tot:30,pe:1,uv:"Rojo (muy alto)",    tipo:"Campo",obs:"Una sola persona en la zona"},
+ {fecha:"2026-11-23",h:15,cielo:"Despejado",            sm:12,tot:30,pe:6,uv:"Amarillo (moderado)",tipo:"Campo",obs:"Conteo realizado a las 15:05"},
+ {fecha:"2026-11-25",h:9, cielo:"Parcialmente nublado", sm:10,tot:30,pe:5,uv:"Amarillo (moderado)",tipo:"Campo",obs:""},
+ {fecha:"2026-11-25",h:12,cielo:"Despejado",            sm:4, tot:30,pe:0,uv:"Rojo (muy alto)",    tipo:"Campo",obs:"Bancas vacías bajo sol directo"},
+ {fecha:"2026-11-25",h:15,cielo:"Parcialmente nublado", sm:11,tot:30,pe:7,uv:"Amarillo (moderado)",tipo:"Campo",obs:""}
+];
+const BLDG=[[470,60,150,70,"Copérnico (P)"],[60,80,95,90,"Cafetería"],[130,270,125,50,"Biblioteca"],[570,330,120,38,"Lab."],[690,170,85,50,"Aulas B"],[260,110,100,24,""],[470,360,120,40,""],[60,370,100,50,""]];
+const UMBRAL=25;
+let H=12;
+
+/* ---------- utilidades ---------- */
+const hh=h=>String(h).padStart(2,"0")+":00";
+const pv=(a,b)=>b?100*a/b:0;
+const fmt=(a,b)=>b?pv(a,b).toFixed(1).replace(".",","):"–";
+const fdate=d=>d.split("-").reverse().join("/");
+function agg(h){const r=REG.filter(x=>x.tipo==="Campo"&&x.h===h);return{sm:r.reduce((a,x)=>a+x.sm,0),tot:r.reduce((a,x)=>a+x.tot,0),n:r.length}}
+function lerp(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
+function colorFor(p){
+  const st=[[217,119,6],[243,217,160],[159,211,214],[14,124,134]];
+  const t=Math.max(0,Math.min(1,p/100))*3, i=Math.min(2,Math.floor(t));
+  return `rgb(${lerp(st[i],st[i+1],t-i)})`;
+}
+/* ---------- posición solar (ecuaciones NOAA) ---------- */
+function sun(dateStr,hour){
+  const d=new Date(dateStr+"T00:00:00Z"), y0=Date.UTC(d.getUTCFullYear(),0,0);
+  const doy=Math.round((d-y0)/864e5), rad=Math.PI/180, lat=12.13, lon=-86.25, tz=-6;
+  const g=2*Math.PI/365*(doy-1+(hour-12)/24);
+  const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+  const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  const tst=hour*60+eq+4*lon-60*tz, ha=(tst/4-180)*rad;
+  const cz=Math.sin(lat*rad)*Math.sin(dec)+Math.cos(lat*rad)*Math.cos(dec)*Math.cos(ha);
+  const el=90-Math.acos(Math.max(-1,Math.min(1,cz)))/rad;
+  const az=(Math.atan2(Math.sin(ha),Math.cos(ha)*Math.sin(lat*rad)-Math.tan(dec)*Math.cos(lat*rad))/rad+180+360)%360;
+  return {el,az};
+}
+const dir=a=>["N","NE","E","SE","S","SO","O","NO"][Math.round(a/45)%8];
+
+/* ---------- vista de resultados ---------- */
+function drawMap(){
+  const svg=document.getElementById("map"); let s="";
+  s+=`<rect width="800" height="520" rx="10" fill="var(--grass)"/>`;
+  s+=`<path d="M0 255H800M400 0V520M180 0V520" stroke="var(--path)" stroke-width="26" fill="none"/>`;
+  BLDG.forEach(b=>{s+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" rx="4" fill="var(--bldg)" stroke="var(--bldg-s)"/>`;
+    if(b[4])s+=`<text x="${b[0]+b[2]/2}" y="${b[1]+b[3]/2+4}" text-anchor="middle" font-size="11" fill="var(--muted)">${b[4]}</text>`;});
+  OTRAS.forEach(([id,x,y])=>{
+    s+=`<circle cx="${x}" cy="${y}" r="11" fill="var(--off)" stroke="var(--bldg-s)" stroke-dasharray="3 2"/>`;
+    s+=`<text x="${x}" y="${y+24}" text-anchor="middle" font-size="10" fill="var(--muted)">${id}</text>`;});
+  const a=agg(H), p=pv(a.sm,a.tot), r=13+Z01.seats*0.35;
+  s+=`<circle cx="${Z01.x}" cy="${Z01.y}" r="${r+6}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="4 3"/>`;
+  s+=`<circle cx="${Z01.x}" cy="${Z01.y}" r="${r}" fill="${colorFor(p)}" stroke="var(--ink)" stroke-width="1.2" fill-opacity=".95"/>`;
+  s+=`<text x="${Z01.x}" y="${Z01.y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#10201f" style="paint-order:stroke;stroke:#fff;stroke-width:3px">${fmt(a.sm,a.tot)}%</text>`;
+  s+=`<text x="${Z01.x}" y="${Z01.y+r+15}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" style="paint-order:stroke;stroke:var(--grass);stroke-width:3px">Z01 · zona piloto</text>`;
+  s+=`<g transform="translate(748,40)"><circle r="14" fill="none" stroke="var(--ink)"/><path d="M0 -10L4 4L0 1L-4 4Z" fill="var(--ink)"/><text y="-18" text-anchor="middle" font-size="11" fill="var(--ink)">N</text></g>`;
+  svg.innerHTML=s;
+}
+function drawRank(){
+  document.querySelector("#rank tbody").innerHTML=[9,12,15].map(h=>{const a=agg(h),p=pv(a.sm,a.tot);
+    return `<tr class="${h===H?"sel":""}"><td><b>${hh(h)}</b></td><td>${a.sm} de ${a.tot} <span class="note">(${a.n} registros)</span></td>
+    <td><div class="bar"><i style="width:${p}%"></i></div><span class="note">${fmt(a.sm,a.tot)}%</span></td></tr>`}).join("");
+}
+function drawKpi(){
+  const a=agg(H), a12=agg(12), crit=pv(a12.sm,a12.tot)<UMBRAL;
+  document.getElementById("k1").textContent=fmt(a.sm,a.tot)+"%";
+  document.getElementById("k1l").textContent="Asientos con sombra en Z01 a las "+hh(H);
+  const k2=document.getElementById("k2"); k2.textContent=crit?"Crítica":"No crítica"; k2.style.color=crit?"var(--warn)":"var(--teal-d)";
+  const s=sun(document.getElementById("fecha").value,H);
+  document.getElementById("k3").textContent=s.el.toFixed(0)+"°";
+  const k=s.el>2?1/Math.tan(s.el*Math.PI/180):NaN;
+  document.getElementById("sunline").innerHTML=`A las <b>${hh(H)}</b> el sol está a <b>${s.el.toFixed(0)}°</b> sobre el horizonte, hacia el <b>${dir(s.az)}</b>. Un objeto de 3 m proyecta unos <b>${isNaN(k)?"–":(3*k).toFixed(1)} m</b> de sombra.`;
+}
+function drawDetail(){
+  const fechas=[...new Set(REG.filter(x=>x.tipo==="Campo").map(x=>x.fecha))].sort();
+  const cell=(f,h)=>{const r=REG.find(x=>x.tipo==="Campo"&&x.fecha===f&&x.h===h);return r?`${r.sm}/${r.tot}`:"–"};
+  const a12=agg(12), p12=pv(a12.sm,a12.tot), crit=p12<UMBRAL;
+  document.getElementById("detail").innerHTML=`<h2>Detalle · Z01</h2><b>${Z01.n}</b><br><span class="note">Asientos con sombra por jornada (de ${Z01.seats})</span>
+   <table style="margin-top:6px"><tr><th>Fecha</th><th>09:00</th><th>12:00</th><th>15:00</th></tr>
+   ${fechas.map(f=>`<tr><td>${fdate(f)}</td>${[9,12,15].map(h=>`<td${h===H?' style="font-weight:700"':""}>${cell(f,h)}</td>`).join("")}</tr>`).join("")}</table>
+   <div class="rule"><b>${crit?"Zona crítica":"Zona no crítica"}:</b> ${fmt(a12.sm,a12.tot)}&nbsp;% de asientos con sombra a las 12:00 (umbral ${UMBRAL}&nbsp;%). ${crit?"Considerar Z01 para una revisión técnica de arborización con Mantenimiento e Infraestructura y Jardinería.":"Mantener el seguimiento con nuevos conteos."}</div>`;
+}
+function drawArc(){
+  const f=document.getElementById("fecha").value, X0=40, X1=720, Y0=125, k=1.15;
+  let pts=[],maxE=0; for(let h=6;h<=18;h+=0.25){const e=sun(f,h).el;maxE=Math.max(maxE,e);pts.push([X0+(h-6)/12*(X1-X0),Y0-Math.max(e,0)*k])}
+  let s=`<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y0}" stroke="var(--line)" stroke-width="2"/>`;
+  [6,9,12,15,18].forEach(h=>{const x=X0+(h-6)/12*(X1-X0);s+=`<text x="${x}" y="${Y0+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${hh(h)}</text><line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y0+4}" stroke="var(--muted)"/>`});
+  s+=`<path d="M${pts.map(p=>p.join(",")).join("L")}" fill="none" stroke="var(--sun)" stroke-width="3"/>`;
+  [9,12,15].forEach(h=>{const e=sun(f,h).el,x=X0+(h-6)/12*(X1-X0),y=Y0-e*k;
+    s+=`<circle cx="${x}" cy="${y}" r="${h===H?8:5}" fill="${h===H?"var(--sun)":"var(--panel)"}" stroke="var(--sun)" stroke-width="2.5"/><text x="${x}" y="${y-13}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${e.toFixed(0)}°</text>`});
+  s+=`<text x="${X0}" y="14" font-size="11.5" fill="var(--muted)">Altura del sol. Máximo del día: ${maxE.toFixed(0)}°. Al mediodía solo protege la sombra “por arriba” (copa o cubierta).</text>`;
+  document.getElementById("arc").innerHTML=s;
+}
+function drawLog(){
+  const rows=[...REG].sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.h-b.h);
+  document.querySelector("#log tbody").innerHTML=rows.map(r=>`<tr><td>${fdate(r.fecha)}</td><td>${hh(r.h)}</td><td>${r.sm}/${r.tot} (${fmt(r.sm,r.tot)}%)</td><td>${r.cielo}</td><td>${r.uv.split(" ")[0]}</td><td><span class="pill ${r.tipo==="Campo"?"ok":"ensayo"}">${r.tipo}</span></td></tr>`).join("");
+}
+function renderAll(){drawMap();drawRank();drawKpi();drawDetail();drawArc();drawLog()}
+
+/* ---------- interacción ---------- */
+document.querySelectorAll("#hours button").forEach(b=>b.onclick=()=>{
+  H=+b.dataset.h; document.querySelectorAll("#hours button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  renderAll();});
+document.getElementById("fecha").onchange=()=>{drawKpi();drawArc()};
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===name));
+  ["mapa","form","como"].forEach(k=>document.getElementById("tab-"+k).classList.toggle("hidden",k!==name));
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showTab(t.dataset.tab));
+
+/* formulario */
+const msg=(t,cls)=>{const m=document.getElementById("f-msg");m.textContent=t;m.className="msg "+(cls||"")};
+const hoy=()=>{const d=new Date();return [d.getDate(),d.getMonth()+1].map(n=>String(n).padStart(2,"0")).join("/")+"/"+d.getFullYear()};
+const aISO=t=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t.trim());if(!m)return "";const d=new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00`);return isNaN(d)||d.getDate()!==+m[1]?"":`${m[3]}-${m[2]}-${m[1]}`};
+document.getElementById("f-fecha").value=hoy();
+document.getElementById("f").onsubmit=e=>{
+  e.preventDefault();
+  const r={fecha:aISO(document.getElementById("f-fecha").value),h:+document.getElementById("f-hora").value,
+    cielo:document.getElementById("f-cielo").value,sm:+document.getElementById("f-som").value,tot:Z01.seats,
+    pe:document.getElementById("f-per").value===""?null:+document.getElementById("f-per").value,
+    uv:document.getElementById("f-uv").value,tipo:document.getElementById("f-tipo").value,obs:document.getElementById("f-obs").value.trim()};
+  if(!r.fecha){msg("La fecha es obligatoria y debe tener el formato dd/mm/aaaa.","err");return}
+  if(r.sm<0||r.sm>r.tot){msg("Los asientos con sombra no pueden superar el total ("+r.tot+").","err");return}
+  if(REG.some(x=>x.fecha===r.fecha&&x.h===r.h&&x.tipo===r.tipo)){msg("Ya existe un registro de Z01 para esa fecha, hora y tipo. Revíselo antes de guardar.","err");return}
+  REG.push(r);
+  msg(r.tipo==="Campo"?"Registro guardado. El indicador de Z01 ya lo incluye.":"Registro de ensayo guardado; no se incluye en el indicador.","okm");
+  e.target.reset(); document.getElementById("f-fecha").value=hoy(); renderAll();};
+document.getElementById("csv").onclick=()=>{
+  const head="zona,fecha,hora,condicion_cielo,asientos_totales,asientos_sombra,porcentaje_sombra,personas_1min,solmaforo,tipo,observacion";
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const body=[...REG].sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.h-b.h).map(r=>["Z01",r.fecha,hh(r.h),r.cielo,r.tot,r.sm,pv(r.sm,r.tot).toFixed(1),r.pe??"",r.uv,r.tipo,r.obs].map(q).join(","));
+  const blob=new Blob(["﻿"+[head,...body].join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="registros_z01.csv"; a.click(); URL.revokeObjectURL(a.href);
+};
+
+renderAll();
+if(location.hash==="#formulario") showTab("form");
+if(location.hash==="#como") showTab("como");
+</script>
+</body>
+</html>
