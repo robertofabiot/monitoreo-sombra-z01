@@ -111,7 +111,7 @@ footer{margin-top:14px;font-size:12px;color:var(--muted)}
       <div>
         <div class="kpis">
           <div class="kpi"><b id="k1">–</b><span id="k1l">Asientos con sombra</span></div>
-          <div class="kpi"><b id="k2">–</b><span>Clasificación a las 12:00 (umbral 25&nbsp;%)</span></div>
+          <div class="kpi"><b id="k2">–</b><span>Clasificación a las 12:00 (criterio preliminar: 25&nbsp;%)</span></div>
           <div class="kpi"><b id="k3">–</b><span>Altura del sol</span></div>
         </div>
         <div class="card" style="margin-bottom:12px">
@@ -163,7 +163,7 @@ footer{margin-top:14px;font-size:12px;color:var(--muted)}
           <li>Se cuentan los 30 asientos de Z01 a las 09:00, 12:00 y 15:00.</li>
           <li>El formulario rechaza sombra mayor que el total, registros sin fecha y duplicados.</li>
           <li>Al cerrar la jornada, los registros se exportan en CSV a la hoja de cálculo.</li>
-          <li>La hoja calcula el % de sombra (razón de sumas) y lo compara con el umbral de 25&nbsp;%.</li>
+          <li>La hoja calcula el % de sombra (razón de sumas) y lo compara con el criterio preliminar de 25&nbsp;%.</li>
         </ol>
         <p class="note">Los registros quedan disponibles durante la sesión; exportarlos en CSV al terminar cada jornada. Los registros de ensayo no se incluyen en el indicador.</p>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
@@ -184,7 +184,7 @@ footer{margin-top:14px;font-size:12px;color:var(--muted)}
       <p><b>Asiento sombreado:</b> se cuenta cuando más de la mitad de su superficie está bajo sombra. Z01 tiene un inventario fijo de 30 asientos (plazas para una persona).</p>
       <p><b>% de sombra</b> = asientos con sombra ÷ asientos observados × 100, contados a la misma hora.</p>
       <p><b>Varias jornadas</b> se agregan con la razón de sumas: Σ asientos con sombra ÷ Σ asientos observados × 100 (no se promedian porcentajes).</p>
-      <p><b>Indicador principal:</b> % de asientos con sombra a las 12:00. <b>Criterio de decisión:</b> menos de 25&nbsp;% = zona crítica, candidata a revisión técnica de arborización.</p>
+      <p><b>Indicador principal:</b> % de asientos con sombra a las 12:00. <b>Criterio de decisión (preliminar, definido por el equipo):</b> menos de 25&nbsp;% = zona crítica, candidata a revisión técnica de arborización. No es una norma ambiental; se ajustará con más datos.</p>
       <p><b>Integridad de los registros</b> = registros completos ÷ registros esperados × 100.</p>
       <p><b>Altura del sol</b> calculada con las ecuaciones astronómicas de la NOAA para Managua (12.13° N, 86.25° O, UTC−6). Es una referencia geométrica: no modifica los conteos.</p>
       <p><b>Sombra de un objeto</b> = altura ÷ tan(altura del sol). Al mediodía el sol está alto: protege la sombra que viene de arriba (copa de árbol o cubierta), no la de un edificio vecino.</p>
@@ -278,7 +278,7 @@ function drawDetail(){
   document.getElementById("detail").innerHTML=`<h2>Detalle · Z01</h2><b>${Z01.n}</b><br><span class="note">Asientos con sombra por jornada (de ${Z01.seats})</span>
    <table style="margin-top:6px"><tr><th>Fecha</th><th>09:00</th><th>12:00</th><th>15:00</th></tr>
    ${fechas.map(f=>`<tr><td>${fdate(f)}</td>${[9,12,15].map(h=>`<td${h===H?' style="font-weight:700"':""}>${cell(f,h)}</td>`).join("")}</tr>`).join("")}</table>
-   <div class="rule"><b>${crit?"Zona crítica":"Zona no crítica"}:</b> ${fmt(a12.sm,a12.tot)}&nbsp;% de asientos con sombra a las 12:00 (umbral ${UMBRAL}&nbsp;%). ${crit?"Considerar Z01 para una revisión técnica de arborización con Mantenimiento e Infraestructura y Jardinería.":"Mantener el seguimiento con nuevos conteos."}</div>`;
+   <div class="rule"><b>${crit?"Zona crítica":"Zona no crítica"}:</b> ${fmt(a12.sm,a12.tot)}&nbsp;% de asientos con sombra a las 12:00 (criterio preliminar del equipo: ${UMBRAL}&nbsp;%). ${crit?"Considerar Z01 para una revisión técnica de arborización con Mantenimiento e Infraestructura y Jardinería.":"Mantener el seguimiento con nuevos conteos."}</div>`;
 }
 function drawArc(){
   const f=document.getElementById("fecha").value, X0=40, X1=720, Y0=125, k=1.15;
