@@ -20,7 +20,8 @@
       </a>
       <nav aria-label="Navegación principal">
         <a class="nav-results" href="#resultados">Resultados</a>
-        <a href="#como">Método</a>
+        <a href="#explorador">Sol y mapa</a>
+        <a class="nav-method" href="#como">Método</a>
         <a class="button nav-record" href="#formulario">Registrar conteo <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
@@ -62,28 +63,60 @@
       </aside>
     </section>
 
-    <section class="context" aria-labelledby="campus">
-      <div>
-        <p class="section-kicker">Zona piloto</p>
-        <h2 id="campus">El monitoreo empieza en Z01</h2>
-        <p>El piloto abarca las mesas y bancas detrás de Copérnico. Las zonas Z02 a Z12 quedan por monitorear.</p>
-        <p>Proponemos repetir el conteo cada 15 días para seguir cómo cambia la sombra.</p>
-        <a class="text-link" href="#como">Ver cómo hicimos el conteo <span aria-hidden="true">↓</span></a>
+    <section id="explorador" class="exploration" aria-labelledby="explorar">
+      <h2 id="explorar">Explora el sol y la sombra</h2>
+      <p>Cambia la hora para comparar lo que observamos en campo con la posición estimada del sol.</p>
+      <div class="explore-time">
+        <span id="hora-explorador">Hora local</span>
+        <div id="horas-explorador" class="hours" role="group" aria-labelledby="hora-explorador"></div>
       </div>
-      <figure class="map">
-        <svg id="mapa" viewBox="0 0 800 520" role="img" aria-label="Esquema del campus. Z01, junto a Copérnico, es la zona piloto. Z02 a Z12 están sin monitorear."></svg>
-        <figcaption>
-          <span><i class="map-monitored" aria-hidden="true"></i> Zona piloto</span>
-          <span><i class="map-pending" aria-hidden="true"></i> Sin monitorear</span>
-          <small>Esquema orientativo sin escala, elaborado por el equipo.</small>
-        </figcaption>
-      </figure>
+      <div class="explore-grid">
+        <section aria-labelledby="campus">
+          <p class="section-kicker">Conteos de campo</p>
+          <h3 id="campus">Mapa del monitoreo</h3>
+          <p id="dato-mapa" class="map-result"></p>
+          <figure class="map">
+            <svg id="mapa" viewBox="0 0 800 520" role="img" aria-label="Esquema del campus. Z01, junto a Copérnico, es la zona piloto. Z02 a Z12 están sin monitorear."></svg>
+            <figcaption>
+              <span><i class="map-monitored" aria-hidden="true"></i> Proporción con sombra en Z01</span>
+              <span><i class="map-pending" aria-hidden="true"></i> Sin monitorear</span>
+              <small>Esquema orientativo sin escala, elaborado por el equipo.</small>
+            </figcaption>
+          </figure>
+          <a class="text-link" href="#como">Ver cómo hicimos el conteo <span aria-hidden="true">↓</span></a>
+        </section>
+
+        <section class="solar" aria-labelledby="sombra-estimada">
+          <p class="section-kicker">Estimación solar para Managua</p>
+          <h3 id="sombra-estimada">¿Cuánto mide la sombra?</h3>
+          <div class="solar-date">
+            <label for="s-fecha">Fecha del cálculo solar</label>
+            <input id="s-fecha" type="date" value="2026-11-25" min="0001-01-01" max="9999-12-31" required aria-describedby="fecha-solo-solar">
+            <small id="fecha-solo-solar">Solo cambia la estimación solar.</small>
+          </div>
+          <div id="posicion" class="solar-result" role="status">
+            <strong id="longitud-sombra"></strong>
+            <span id="altura-solar"></span>
+          </div>
+          <figure id="figura-sombra" class="shadow-figure">
+            <svg id="sombra-modelo" viewBox="0 0 400 174" aria-hidden="true"></svg>
+            <figcaption>Vista lateral de un objeto vertical de 3 m sobre terreno plano.</figcaption>
+          </figure>
+          <details id="recorrido">
+            <summary>Recorrido del sol y cálculo</summary>
+            <svg id="arco" viewBox="0 0 400 138" aria-hidden="true"></svg>
+            <p class="subtle">La longitud se estima dividiendo los 3 m entre la tangente de la elevación solar. En el campus, la sombra que alcanza cada asiento depende de la altura, ubicación y orientación de los obstáculos.</p>
+            <p class="subtle">Usamos las <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF">ecuaciones simplificadas de NOAA</a> para Managua (12,13° N, 86,25° O, UTC−6).</p>
+          </details>
+        </section>
+      </div>
     </section>
 
     <section id="como" class="method section-rule" aria-labelledby="metodo">
       <p class="section-kicker">Trabajo de campo</p>
       <h2 id="metodo">Cómo medimos la sombra</h2>
       <p>Un asiento cuenta como sombreado cuando <strong>más de la mitad</strong> de su superficie queda bajo sombra. Repetimos el conteo a las 09:00, 12:00 y 15:00.</p>
+      <p>Proponemos repetir el conteo cada 15 días para seguir cómo cambia la sombra.</p>
       <details>
         <summary>Cálculo del indicador</summary>
         <p>Para cada horario dividimos la suma de asientos con sombra entre la suma de asientos observados y multiplicamos por 100.</p>
@@ -93,28 +126,6 @@
       <details>
         <summary>Colores del solmáforo</summary>
         <p>El solmáforo indica el índice de radiación ultravioleta (UV). Verde indica 1–2, amarillo 3–5, naranja 6–7, rojo 8–10 y violeta 11 o más.</p>
-      </details>
-      <details id="explorador">
-        <summary>Explorar la posición solar</summary>
-        <div class="solar">
-          <p>Estimación para Managua (12,13° N, 86,25° O, UTC−6). La fecha y la hora de este explorador solo cambian la estimación astronómica. Los conteos se hacen en campo.</p>
-          <div class="solar-controls">
-            <label for="s-fecha">Fecha para el cálculo solar
-              <input id="s-fecha" type="date" value="2026-11-25" min="0001-01-01" max="9999-12-31" required>
-            </label>
-            <label for="s-hora">Hora local
-              <select id="s-hora">
-                <option value="9">09:00</option>
-                <option value="12" selected>12:00</option>
-                <option value="15">15:00</option>
-              </select>
-            </label>
-          </div>
-          <p id="posicion" class="solar-result" role="status"></p>
-          <svg id="arco" viewBox="0 0 400 138" aria-hidden="true"></svg>
-          <p class="subtle">Para un objeto vertical sobre terreno nivelado, la longitud de su sombra se estima dividiendo su altura entre la tangente de la elevación solar. La sombra que alcanza un asiento depende de la altura, la ubicación y la orientación de los obstáculos.</p>
-          <p class="subtle">El cálculo usa las <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF">ecuaciones simplificadas de NOAA</a> para obtener la altura geométrica del sol.</p>
-        </div>
       </details>
     </section>
 

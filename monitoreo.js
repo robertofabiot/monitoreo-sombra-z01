@@ -3,6 +3,7 @@
 const ASIENTOS = 30;
 const UMBRAL = 25;
 const HORAS = [9, 12, 15];
+const ALTURA_OBJETO = 3;
 const PREFIJO = "monitoreo-sombra-z01:v1:";
 const PILOTO = [
  {fecha:"2026-11-23",h:9, cielo:"Despejado",            sm:9, tot:30,pe:4,uv:"Amarillo (moderado)",tipo:"Campo",obs:""},
@@ -83,26 +84,35 @@ function resultado(h) {
   return { sombra, observados, valor: porcentaje(sombra, observados), jornadas: campo.length };
 }
 
-for (const h of HORAS) {
-  const boton = document.createElement("button");
-  boton.type = "button";
-  boton.className = "hour";
-  boton.dataset.hora = h;
-  const etiqueta = document.createElement("strong");
-  etiqueta.textContent = hora(h);
-  boton.append(etiqueta, document.createElement("span"));
-  boton.addEventListener("click", () => {
-    horaActiva = h;
-    mostrarResultados();
-  });
-  $("horarios").append(boton);
+for (const grupo of [$("horarios"), $("horas-explorador")]) {
+  for (const h of HORAS) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "hour";
+    boton.dataset.hora = h;
+    if (grupo.id === "horarios") {
+      const etiqueta = document.createElement("strong");
+      etiqueta.textContent = hora(h);
+      boton.append(etiqueta, document.createElement("span"));
+    } else {
+      boton.textContent = hora(h);
+    }
+    boton.addEventListener("click", () => {
+      horaActiva = h;
+      mostrarResultados();
+      mostrarSol();
+    });
+    grupo.append(boton);
+  }
 }
+const botonesHora = document.querySelectorAll("[data-hora]");
 
 function mostrarResultados() {
-  for (const boton of $("horarios").children) {
+  for (const boton of botonesHora) {
     const h = Number(boton.dataset.hora);
     boton.setAttribute("aria-pressed", h === horaActiva);
-    boton.lastElementChild.textContent = decimal.format(resultado(h).valor) + " %";
+    const valor = boton.querySelector("span");
+    if (valor) valor.textContent = decimal.format(resultado(h).valor) + " %";
   }
 
   const activo = resultado(horaActiva);
@@ -110,6 +120,7 @@ function mostrarResultados() {
   $("hora-activa").textContent = hora(horaActiva);
   $("conteo-activo").textContent = activo.sombra + " de " + activo.observados + " observaciones" +
     (activo.jornadas > 2 ? " (piloto y campo local)" : "");
+  actualizarMapa(activo);
 
   const mediodia = resultado(12);
   const critica = mediodia.valor < UMBRAL;
@@ -140,7 +151,7 @@ function mostrarResultados() {
   }));
 }
 
-function mostrarMapa() {
+function dibujarMapa() {
   const edificios = [
     [470, 60, 150, 70, "Copérnico (P)"], [60, 80, 95, 90, "Cafetería"],
     [130, 270, 125, 50, "Biblioteca"], [570, 330, 120, 38, "Lab."],
@@ -159,9 +170,16 @@ function mostrarMapa() {
     <path d="M0 255H800M400 0V520M180 0V520" stroke="#e5efeb" stroke-width="26"/>
     ${bloques.join("")}
     ${pendientes.join("")}
-    <circle cx="645" cy="130" r="35" fill="#78ffd6" stroke="#023c40" stroke-width="2"/>
+    <circle cx="645" cy="130" r="39" fill="#78ffd6" stroke="#023c40" stroke-width="2"/>
+    <circle id="proporcion-z01" cx="645" cy="130" r="34" pathLength="100" fill="none"
+      stroke="#023c40" stroke-width="8" transform="rotate(-90 645 130)"/>
     <circle cx="645" cy="130" r="27" fill="#023c40"/>
     <text x="645" y="137" text-anchor="middle" font-size="21" font-weight="750" fill="white">Z01</text>`;
+}
+
+function actualizarMapa(activo) {
+  $("proporcion-z01").setAttribute("stroke-dasharray", activo.valor + " 100");
+  $("dato-mapa").textContent = `Z01 a las ${hora(horaActiva)} · ${decimal.format(activo.valor)} % de asientos con sombra.`;
 }
 
 function posicionSolar(fecha, h) {
@@ -193,20 +211,53 @@ function posicionSolar(fecha, h) {
 
 function mostrarSol() {
   const fecha = $("s-fecha").value;
-  const h = Number($("s-hora").value);
-  const arco = $("arco");
-  if (!fechaValida(fecha)) {
-    $("posicion").textContent = "Ingresa una fecha válida para calcular la posición solar.";
-    arco.replaceChildren();
+  const h = horaActiva;
+  const fechaCorrecta = fechaValida(fecha);
+  $("figura-sombra").hidden = !fechaCorrecta;
+  $("recorrido").hidden = !fechaCorrecta;
+  if (!fechaCorrecta) {
+    $("longitud-sombra").textContent = "Ingresa una fecha válida.";
+    $("altura-solar").textContent = "";
     return;
   }
 
   const { altura, azimut } = posicionSolar(fecha, h);
-  const direccion = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][Math.round(azimut / 45) % 8];
-  const sombra = 3 / Math.tan(altura * Math.PI / 180);
-  $("posicion").textContent = hora(h) + " · " + decimal.format(altura) + "° sobre el horizonte, hacia el " +
-    direccion + ". Un objeto vertical de 3 m proyectaría unos " + decimal.format(sombra) + " m de sombra.";
+  const direccion = ["norte", "noreste", "este", "sureste", "sur", "suroeste", "oeste", "noroeste"][Math.round(azimut / 45) % 8];
+  const sombra = ALTURA_OBJETO / Math.tan(altura * Math.PI / 180);
+  $("longitud-sombra").textContent = `Sombra estimada de ${decimal.format(sombra)} m`;
+  $("altura-solar").textContent = `A las ${hora(h)}, el sol está a ${decimal.format(altura)}° sobre el horizonte, hacia el ${direccion}.`;
+  dibujarSombra(altura, sombra);
 
+  dibujarRecorrido(fecha, h);
+}
+
+function dibujarSombra(altura, sombra) {
+  const escala = 31;
+  const suelo = 139;
+  const objeto = 114;
+  const cima = suelo - ALTURA_OBJETO * escala;
+  const extremo = objeto + sombra * escala;
+  const angulo = altura * Math.PI / 180;
+  const solX = objeto - 34 * Math.cos(angulo);
+  const solY = cima - 34 * Math.sin(angulo);
+  const marcas = [0, 2, 4, 6, 8].map(metros => {
+    const x = objeto + metros * escala;
+    return `<path d="M${x} ${suelo}v6" stroke="#648684"/>
+      <text x="${x}" y="${suelo + 22}" text-anchor="middle" font-size="15" fill="#356063">${metros} m</text>`;
+  });
+
+  $("sombra-modelo").innerHTML = `
+    <path d="M20 ${suelo}H380" stroke="#648684"/>
+    ${marcas.join("")}
+    <path d="M${solX} ${solY}L${extremo} ${suelo}" stroke="#915c19" stroke-width="2" stroke-dasharray="5 4"/>
+    <path d="M${objeto} ${suelo}V${cima}" stroke="#023c40" stroke-width="6" stroke-linecap="round"/>
+    <line id="trazo-sombra" x1="${objeto}" y1="${suelo}" x2="${extremo}" y2="${suelo}" stroke="#023c40" stroke-width="6"/>
+    <text x="${objeto - 12}" y="${(cima + suelo) / 2}" text-anchor="end" font-size="16" fill="#023c40">${ALTURA_OBJETO} m</text>
+    <circle cx="${solX}" cy="${solY}" r="8" fill="#f7d28d" stroke="#915c19"/>
+    <text x="${solX - 14}" y="${solY + 5}" text-anchor="end" font-size="15" fill="#704715">Sol</text>`;
+}
+
+function dibujarRecorrido(fecha, h) {
   const punto = (horaLocal, elevacion) => [22 + (horaLocal - 6) * 29.5, 110 - Math.max(0, elevacion)];
   const curva = Array.from({ length: 49 }, (_, i) => {
     const horaLocal = 6 + i / 4;
@@ -219,7 +270,7 @@ function mostrarSol() {
       <text x="${x}" y="${y - 10}" text-anchor="middle" font-size="13" fill="#023c40">${decimal.format(elevacion)}°</text>
       <text x="${x}" y="129" text-anchor="middle" font-size="13" fill="#356063">${hora(horaLocal)}</text>`;
   });
-  arco.innerHTML = `<path d="M22 110H376" stroke="#8bb6af" stroke-width="1"/>
+  $("arco").innerHTML = `<path d="M22 110H376" stroke="#8bb6af" stroke-width="1"/>
     <polyline points="${curva.join(" ")}" fill="none" stroke="#238276" stroke-width="3"/>
     ${marcas.join("")}`;
 }
@@ -360,8 +411,7 @@ window.addEventListener("storage", evento => {
 });
 $("csv").addEventListener("click", exportarCsv);
 $("s-fecha").addEventListener("input", mostrarSol);
-$("s-hora").addEventListener("change", mostrarSol);
 campos.fecha.value = fechaManagua.format(new Date());
+dibujarMapa();
 actualizarRegistros();
-mostrarMapa();
 mostrarSol();
